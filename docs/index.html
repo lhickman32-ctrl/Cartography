@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scale=no">
+<title>Inequalities in Boston Tree Canopy Coverage</title>
+
+<link rel="stylesheet" href="https://js.arcgis.com/4.34/esri/themes/dark/main.css">
+<script src="https://js.arcgis.com/4.34/"></script>
+
+<style>
+html, body {
+  margin:0;
+  padding:0;
+  height:100%;
+  width:100%;
+}
+#header {
+  width:100%;
+  height:7%;
+  background:#306030;
+  color:white;
+  text-align:center;
+  line-height:2.5em;
+  font-weight:bold;
+}
+  #titleDiv {
+  font-family: "Tahoma", sans-serif; 
+  font-size: 24px;                  
+  font-weight: bold;                  
+  color: #ffffff;                      
+  text-align: center;                  
+  line-height: 2.5em;                   
+} 
+#mapContainer {
+  display:flex;
+  height:93%;
+  width:100%;
+}
+
+#legendDiv {
+  width:20%;
+    height:100%;
+  background-color:#306030;
+  padding:0;
+  box-sizing:border-box;
+  overflow-y:auto;
+}
+  #legendHeader {
+  background-color: black;  
+  color: white;               
+  font-family: "Tahoma", sans-serif;
+  font-size: 18px;
+  font-weight: bold;
+  text-align: center;
+  padding: 0;
+height:3.5%
+}  
+#mapsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr; 
+  grid-template-rows: 1fr 1fr; 
+  width: 80%; 
+    height:100%
+}
+.mapContainer {
+  display: flex;
+  flex-direction: column;
+    height:98%;
+    border-width:5px;
+    border-color: black;
+    border-style: solid; 
+}
+.mapTitle {
+    background-color: black;
+        color: white;
+  text-align: center;
+  font-weight: bold;
+    font-family: "Tahoma", sans-serif;
+    font-size:16px;
+    height:6%;
+}
+.mapViewDiv {
+  width: 100%;
+  flex:1;
+}
+.esri-layer-list__panel,   
+.esri-layer-list__item-container,
+.esri-layer-list__item,
+.esri-layer-list__item-title,
+.esri-layer-list__item-label,
+.esri-layer-list__item-content,
+.esri-layer-list__item-actions,
+.esri-layer-list__item-toggle
+.esri-widget_heading {
+    background-color: black !important;
+    font-family: "Roboto", sans-serif;
+    color: white !important;
+    margin: 0 !important;
+    padding:0 !important;
+    border: none !important;
+}
+
+.esri-legend,
+.esri-legend__layer,
+.esri-legend__layer-row,
+.esri-legend__layer-body,
+.esri-legend__layer-cell {
+    background-color: black !important;
+    color: white !important;
+    font-family:"Roboto", sans-serif;
+    font-size: 10px;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+}
+.esri-legend__layer-caption,
+.esri-legend__layer-title,
+.esri-legend__symbol-label
+.esri-legend_layer-label{
+    background-color:black;
+  font-family: "Roboto", sans-serif;
+  font-size: 16px;
+    font-weight: "bold";
+  color: white;
+}   
+</style>
+</head>
+<script>
+    
+require([
+    "esri/Map", 
+    "esri/views/MapView", 
+    "esri/layers/FeatureLayer",
+    "esri/widgets/LayerList",
+    "esri/widgets/Swipe",
+    "esri/widgets/Expand"
+], function(Map, MapView, FeatureLayer, LayerList, Swipe, Expand){
+
+    // create myMaps
+    var myMap= new Map({basemap:"gray-vector"});
+    var myMap2 = new Map({ basemap:"gray-vector" });
+    var myMap3 = new Map({ basemap:"gray-vector" });
+    var myMap4 = new Map({ basemap:"gray-vector" });
+    
+  //create myViews
+    var myView = new MapView({ 
+        container:"viewDiv",
+        map:myMap,
+        center:[-71.0565,42.32555],
+        scale:175000 });
+    
+    var myView2 = new MapView({
+        container:"viewDiv2",
+        map:myMap2,
+        center:[-71.0565,42.32555],
+        scale:160000 });
+    
+    var myView3 = new MapView({
+        container:"viewDiv3",
+        map:myMap3,
+        center:[-71.0565,42.32555],
+        scale:160000 });
+    
+    var myView4 = new MapView({
+        container:"viewDiv4",
+        map: myMap4,
+        center:[-71.0565,42.32555],
+        scale:160000 });
+    
+    // remove zoom buttons from view2, view3, view4
+myView2.ui.remove("zoom"); 
+myView3.ui.remove("zoom");
+myView4.ui.remove("zoom");
+    
+    //create const views - will need later
+const views =[myView,myView2,myView3,myView4];   
+    
+    // Create my 5 layers
+    var treelayer = new FeatureLayer({
+        title:"Tree Canopy Coverage",
+        portalItem:{ id:"f62add8555de400fa180684b287eb1d9" },
+        copyright:"USDA Forest Service",
+        minScale:0,
+        maxScale:0,
+        popupTemplate:{
+            title:"Block Group {BLKGRPCE20} Census Tract {TRACTCE20}, Suffolk County, Massachusetts",
+            content:[{
+            type:"fields",
+                fieldInfos:[{
+                fieldName:"MEAN", label:"% Tree Canopy Coverage",
+                    format:{
+                        places: 2,
+                        digitSeparator: true
+                    }
+            }
+                ]
+            }]
+        }
+    });
+
+    treelayer.renderer = {
+        type:"class-breaks",
+        field:"MEAN",
+        legendOptions:{title:"Percent Tree Canopy Coverage "},
+        classBreakInfos:[
+            {minValue:0,
+             maxValue:10,
+             label:"<10%",
+             symbol:{
+                 type:"simple-fill",
+                 color:"#d1f2d4",
+                 outline: {
+                     color: [46,125,50],
+                     width: 0.5 }
+             }},         
+            {minValue:10,
+             maxValue:20,
+             label:"10-20%",
+             symbol:{
+                 type:"simple-fill",
+                 color:"#a8e6a1",
+                 outline: {
+                     color: [46,125,50],
+                     width: 0.5 }
+}},
+            {minValue:20,
+             maxValue:30,
+             label:"20-30%",
+             symbol:{
+                 type:"simple-fill",
+                 color:"#7ed957",
+                 outline:{
+                     color:[46,125,50],
+                     width:0.5}}},
+            {minValue:30,
+             maxValue:40,
+             label:"30-40%",
+             symbol:{
+                 type:"simple-fill",
+                 color:"#55c62f",
+                 outline:{
+                     color:[27,94,32], 
+                     width:0.5}}},
+            {minValue:40,
+             maxValue:50,
+             label:"40-50%",
+             symbol:{
+                 type:"simple-fill",
+                 color:"#2e7d32",
+                 outline:{
+                     color:[27,94,32],
+                     width:0.5}}},
+            {minValue:50,
+             maxValue:100,
+             label:">50%", 
+             symbol:{
+                 type:"simple-fill",
+                 color:"#1b5e20",
+                 outline:{
+                     color:[13,51,16], 
+                    width:0.5}}}
+        ]
+    };
+
+    var lstlayer = new FeatureLayer({
+        title:"LST Index",
+        portalItem:{ id:"b98a1e33ad104960b4c40de89f467815" },
+        copyright:"MAPC",
+     popupTemplate:{
+            title:"Block Group {BLKGRPCE20} Census Tract {TRACTCE20}, Suffolk County, Massachusetts",
+            content:[{
+            type:"fields",
+                fieldInfos:[{
+                fieldName:"MEAN", label:"% LST Index",
+                    format:{
+                        places: 2,
+                        digitSeparator: true
+                    }
+            }
+                ]
+            }]
+        }
+    });
+       lstlayer.renderer = {
+        type:"class-breaks",
+        field:"MEAN",
+        legendOptions:{title: "LST Heat Index Level 0-1"},
+        classBreakInfos:[
+            {minValue:0,
+             maxValue:0.3,
+             label:"0-0.3 Low Heat Area",
+             symbol:{
+                 type:"simple-fill",
+                 color:"#ffffb2",
+                 outline: {
+                     color: "#ff7f50",
+                     width: 0.5 }
+             }},  
+            {minValue:0.3,
+             maxValue:0.5,
+             label:"0.3-0.5 Medium Heat Areas",
+             symbol:{
+                 type:"simple-fill",
+                 color:"#fecc5c",
+                 outline: {
+                     color: "#b22222",
+                     width: 0.5 }
+}},
+            {minValue:0.5,
+             maxValue:0.6,
+             label:"0.5-0.6 High Heat Areas",
+             symbol:{
+                 type:"simple-fill",
+                 color:"#fd8d3c",
+                 outline:{
+                     color:"#b22222",
+                     width:0.5}}},
+            {minValue:0.6,
+             maxValue:1,
+             label:">0.6 Extreme Heat Areas",
+             symbol:{
+                 type:"simple-fill",
+                 color:"#800000",
+                 outline:{
+                     color:"#330000", 
+                     width:0.5}}},
+        ]
+    };
+var minoritylayer = new FeatureLayer({ 
+    title: "Percent Minority Population",
+    portalItem: { id: "8b85b7eefcc94553af8dbbd5dae0caf2" },
+    copyright: "US Census Data",
+    popupTemplate: {
+        title:"{Geographic}",
+        content: [{
+            type: "fields",
+            fieldInfos: [
+                {
+                    fieldName: "Min_Per",
+                    label: "% Minority Population",
+                    format: {
+                        places: 2,
+                        digitSeparator: true
+                    }
+                },
+                {
+                    fieldName:"Total_Pop", 
+                    label: "Total Population",
+                    format: {
+                        places: 0,
+                        digitSeparator: true
+                    }
+                }
+            ]
+        }]
+    }
+});
+
+    minoritylayer.renderer={
+        type:"class-breaks",
+        field:"Min_Per",
+        legendOptions:{title: "Percent of Minority Population"},
+         classBreakInfos:[
+            {minValue:0,
+             maxValue:20,
+             label:"0-20%",
+             symbol:{
+                 type:"simple-fill",
+                 color:"#f3e5ff",
+                 outline: {
+                     color: "#a57fff",
+                     width: 0.5 }
+             }},
+             
+            {minValue:20,
+             maxValue:40,
+             label:"20-40%",
+             symbol:{
+                 type:"simple-fill",
+                 color:"#d1a3ff",
+                 outline: {
+                     color: "#9933cc",
+                     width: 0.5 }
+}},
+                {minValue:40,
+             maxValue:60,
+             label:"40-60%",
+             symbol:{
+                 type:"simple-fill",
+                 color:"#a64dff",
+                 outline: {
+                     color: "#6600cc",
+                     width: 0.5 }
+             }},
+             
+            {minValue:60,
+             maxValue:80,
+             label:"60-80%",
+             symbol:{
+                 type:"simple-fill",
+                 color:"#7a00cc",
+                 outline:{
+                     color:"#330099",
+                     width:0.5}
+             }},
+            {minValue:80,
+             maxValue:100,
+             label:"80-100%",
+             symbol:{
+                 type:"simple-fill",
+                 color:"#4d0073",
+                 outline:{
+                     color:"#1a0033", 
+                     width:0.5}
+             }},
+        ]
+    };
+    
+
+    var income = new FeatureLayer({
+        title:"Median Household Income",
+        portalItem:{ id:"9b157ea9076e4035b0371b61f4d05273" },
+        copyright:"US Census Data",
+                popupTemplate: {
+        title: "{Geographic}",
+        content: [{
+            type: "fields",
+            fieldInfos: [
+                {   fieldName: "Median_Inc",
+                    label: "Median Household Income",
+                    format: {
+                        places: 0,
+                        digitSeparator: true}
+                }, {
+                    fieldName: "Total_Pop",
+                    label: "Total Population",
+                    format: {
+                        places: 0,
+                        digitSeparator: true}
+                }
+            ]
+        }]
+    }
+});
+      income.renderer={
+        type:"class-breaks",
+        field:"Median_inc",
+        legendOptions:{title: "Median Household Income"},
+         classBreakInfos:[
+            {minValue:0,
+             maxValue:0,
+             label:"No Recorded income",
+             symbol:{
+                 type:"simple-fill",
+                 color:"#fff9e6",
+                 outline: {
+                     color: "#ffd966",
+                     width: 0.5 }
+             }},
+             
+            {minValue:0,
+             maxValue:45000,
+             label:"$0 - $45,000",
+             symbol:{
+                 type:"simple-fill",
+                 color:"#fff2b2",
+                 outline: {
+                     color: "#ffcc33",
+                     width: 0.5 }
+}},
+                {minValue:45000,
+             maxValue:80000,
+             label:"$45,000 - $80,000",
+             symbol:{
+                 type:"simple-fill",
+                 color:"#ffdf66",
+                 outline: {
+                     color: "#ffb700",
+                     width: 0.5 }
+             }},
+             
+            {minValue:80000,
+             maxValue:125000,
+             label:"$80,000 - $125,000",
+             symbol:{
+                 type:"simple-fill",
+                 color:"#ffcc33",
+                 outline:{
+                     color:"#ff9900",
+                     width:0.5}
+             }},
+            {minValue:125000,
+             maxValue:200000,
+             label:"$125,000 - $200,000",
+             symbol:{
+                 type:"simple-fill",
+                 color:"#ffb700",
+                 outline:{
+                     color:"#cc8500", 
+                     width:0.5}
+             }},
+             {minValue: 200000,
+             maxValue: 250000,
+             label:">$200,000",
+             symbol:{
+              type:"simple-fill",
+              color:"#cc9900",
+                 outline:{
+                     color:"#cc9900",
+                     width:0.5}
+             }}
+        ]
+    };
+    //create parks label layer for each map view, make park labels turn off when zoomed out
+function createParksLayer() {
+  return new FeatureLayer({
+    portalItem: { id: "be8db8111cd940d19a555f8c921c618d" },
+    title: "Major Parks",
+      minScale:300000,
+    labelingInfo: [{
+     labelExpressionInfo: {
+  expression: "Replace($feature.SITE_NAME,' ', TextFormatting.NewLine)"
+},
+      symbol: {
+        type: "text",
+        color: "#002200",
+        haloColor: "white",
+        haloSize: 1.7,
+        font: {
+          size:7,
+        }
+      },
+      labelPlacement: "center"
+    }]
+  });
+}
+var parks1 = createParksLayer();
+var parks2 = createParksLayer();
+var parks3 = createParksLayer();
+var parks4 = createParksLayer();
+    
+    //add the layers to the maps
+myMap.addMany([parks1,treelayer]);
+myMap2.addMany([parks2,minoritylayer]);
+myMap3.addMany([parks3,lstlayer]);
+myMap4.addMany([parks4,income]);
+
+    // create LayerList that combines all legends with interactivity
+const layerListContainer = document.createElement("div");
+document.getElementById("legendDiv").appendChild(layerListContainer);
+
+[myView, myView2, myView3, myView4].forEach((view, i) => {
+  const container = document.createElement("div");
+
+  layerListContainer.appendChild(container);
+
+  new LayerList({
+    view: view,
+    container: container,
+    listItemCreatedFunction: function(event){
+      const item = event.item;
+      if(item.layer.type !== "group"){
+        item.title = "";
+        item.panel = { content: "legend", open: true };
+
+        // Rename layers
+        if(item.layer.title === "Tree Canopy Coverage") {
+          item.title = "Tree Canopy Coverage";
+        }
+        else if(item.layer.title === "LST Index") {
+          item.title = "Heat Index";
+        } 
+        else if(item.layer.title === "Median Household Income") {
+          item.title = "Income";
+        } 
+        else if(item.layer.title === "Percent Minority Population") {
+          item.title = "Minority Population";
+        } 
+        else if(item.layer.title === "Major Parks") {
+          item.title = "Major City Parks";
+          item.panel = { content: "legend", open:false}; //keep parks legend closed intially
+        }
+
+        if(item.layer.renderer && item.layer.renderer.type === "class-breaks"){
+          item.legendOptions = { title: item.title };
+        }
+      }
+    }
+  });
+});
+
+    // Sync my four views
+    let active;
+    const sync = source => {
+        if(!active || active !== source) return;
+        views.forEach(v=>{ if(v!==active) v.viewpoint = active.viewpoint; });
+    };
+    views.forEach(view=>{
+        view.watch(["interacting","animations"],()=>{ active=view; sync(active); });
+        view.watch("viewpoint",()=>sync(view));
+    });
+
+});
+</script>
+<body>
+  <div id="header">
+    <div id="titleDiv">Inequalities in Boston’s Tree Canopy and Socioeconomic Landscape</div>
+  </div>
+
+  <div id="mapContainer">
+    <div id="legendDiv">
+        <div id="legendHeader">Legend</div>
+      </div>
+    <div id="mapsGrid">
+      <div class="mapContainer">
+        <div class="mapTitle">Tree Canopy Coverage</div>
+        <div id="viewDiv" class="mapViewDiv"></div>
+      </div>
+      <div class="mapContainer">
+        <div class="mapTitle">Minority Population</div>
+        <div id="viewDiv2" class="mapViewDiv"></div>
+      </div>
+      <div class="mapContainer">
+        <div class="mapTitle">LST Heat Index</div>
+        <div id="viewDiv3" class="mapViewDiv"></div>
+      </div>
+      <div class="mapContainer">
+        <div class="mapTitle">Median Household Income</div>
+        <div id="viewDiv4" class="mapViewDiv"></div>
+      </div>
+    </div>
+  </div>
+
+
+</body>
+</html>
